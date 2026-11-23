@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { Session } from "./session.ts";
 import { LEVELS } from "./levels.ts";
 import { isSolved } from "./puzzle.ts";
@@ -20,6 +20,23 @@ Deno.test("an unsubscribed listener hears nothing more", () => {
   const unsubscribe = session.subscribe(() => heard++);
   unsubscribe();
   session.dispatch({ kind: "move", direction: "right" });
+  assertEquals(heard, 0);
+});
+
+Deno.test("undo brings back the very puzzle from before the last move", () => {
+  const session = new Session();
+  session.dispatch({ kind: "move", direction: "right" });
+  const before = session.getState().puzzle;
+  session.dispatch({ kind: "move", direction: "right" });
+  session.dispatch({ kind: "undo" });
+  assertStrictEquals(session.getState().puzzle, before);
+});
+
+Deno.test("undo with nothing to undo notifies no subscriber", () => {
+  const session = new Session();
+  let heard = 0;
+  session.subscribe(() => heard++);
+  session.dispatch({ kind: "undo" });
   assertEquals(heard, 0);
 });
 
